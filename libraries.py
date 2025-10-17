@@ -17,11 +17,15 @@ from IPython.display import display
 # --- Third-party libraries: Machine Learning / Optimization ---
 import optuna
 from sklearn.model_selection import TimeSeriesSplit
+import tensorflow as tf
+import mlflow
 
 # --- Type hints ---
 from typing import List
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 optuna.logging.set_verbosity(optuna.logging.ERROR)
 
 np.random.seed(42)
