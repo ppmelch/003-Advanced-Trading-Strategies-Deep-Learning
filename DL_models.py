@@ -1,6 +1,6 @@
 from libraries import *
 
-model_name = "PRUEBA1"
+model_name = "Test1_003"
 model_version = "1"
 
 model = mlflow.tensorflow.load_model(

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/ppmel/Documentos/ITESO%207mo%20Semestre/Trading-003/mlruns/186829298876917065/4a519894de8947b8ab0f1fc37c76dddc/artifacts
+end_time: 1760904481940
+entry_point_name: ''
+experiment_id: '186829298876917065'
+lifecycle_stage: active
+run_id: 4a519894de8947b8ab0f1fc37c76dddc
+run_name: efficient-mink-548
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760904481922
+status: 4
+tags: []
+user_id: ppmel

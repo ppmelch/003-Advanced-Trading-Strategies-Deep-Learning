@@ -29,32 +29,97 @@ class Position:
     exit_price: float = None
 
 
-
-def dateset_split(data: pd.DataFrame, train: float, test: float, validation: float) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+@dataclass
+class MLP_Params:
     """
-    Splits a DataFrame into training, testing, and validation sets.
-
-    Parameters:
-    data : pd.DataFrame
-        Complete dataset to split.
-    train : float
-        Fraction of data to use for training.
-    test : float
-        Fraction of data to use for testing.
-    validation : float
-        Fraction of data to use for validation.
-
-    Returns:
-    tuple
-        train_data, test_data, validation_data
+    Parameters for MLP Classifier.
+     Attributes:
+     hidden_layer_sizes : tuple
+        Size of hidden layers.
+    activation : str
+        Activation function.
+    solver : str
+        Solver for weight optimization.
+    max_iter : int
+        Maximum number of iterations.
     """
-    n = len(data)
-    train_size = int(n * train)
-    test_size = train_size + int(n * test)
 
-    train_data = data.iloc[:train_size]
-    test_data = data.iloc[train_size:test_size]
-    validation_data = data.iloc[test_size:]
+    hidden_layer_sizes: tuple = (64, 32)
+    activation: str = 'relu'
+    solver: str = 'adam'
+    max_iter: int = 10000
 
-    return train_data, test_data, validation_data
+@dataclass
+class CNN_Params:
+    """
+    Parameters for CNN model.
+    Attributes:
+        lookback : int
+            Number of previous time steps to consider.
+        conv_layers : int
+            Number of convolutional layers.
+        filters : int
+            Number of filters in the convolutional layers.
+        kernel_size : int       
+            Size of the convolutional kernels.
+        dense_units : int
+            Number of units in the dense layer.
+        activation : str
+            Activation function.
+        optimizer : str
+            Optimizer for training.
+        epochs : int
+            Number of training epochs.
+        batch_size : int
+            Size of training batches.
+    """
+    lookback: int = 20
+    conv_layers: int = 2
+    filters: int = 32
+    kernel_size: int = 3
+    dense_units: int = 64
+    activation: str = 'relu'
+    optimizer: str = 'adam'
+    epochs: int = 10
+    batch_size: int = 32
+
+
+@dataclass
+class BacktestingCapCOM:
+    """
+    Backtesting configuration with initial capital and commission.
+
+    Attributes:
+    initial_capital : float
+        Initial capital for backtesting (default: 1_000_000).
+    COM : float
+        Commission per trade in percentage (default: 0.125 / 100).
+    """
+    initial_capital: float = 1_000_000
+    COM: float = 0.125 / 100
+
+
+@dataclass
+class OptunaOpt:
+    """
+    Optuna optimization configuration.
+
+    Attributes:
+    direction : str
+        Optimization direction ('maximize' or 'minimize').
+    n_trials : int
+        Number of optimization trials.
+    n_jobs : int
+        Number of parallel jobs (-1 uses all cores).
+    n_splits : int
+        Number of cross-validation splits.
+    show_progress_bar : bool
+        Show Optuna progress bar.
+    """
+    direction: str = 'maximize'
+    n_trials: int = 50
+    n_jobs: int = -1
+    n_splits: int = 5
+    show_progress_bar: bool = True
+
 
