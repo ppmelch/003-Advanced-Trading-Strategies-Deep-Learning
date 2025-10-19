@@ -1,54 +1,37 @@
 from libraries import *
+from functions import MLP_Params, CNN_Params
 
 
-def model_MLP(X_train_scaled, X_test_scaled, X_validation_scaled, y_train, y_test, y_validation, experiment_name="MLP Trading"):
+# Model MLP
 
-    mlflow.set_experiment(experiment_name)
-    
-    sample_weights = compute_sample_weight(class_weight='balanced', y=y_train)
-    
-    mlp = MLPClassifier(hidden_layer_sizes=(64, 32),
-                        activation='relu',
-                        solver='adam',
-                        max_iter=10000)
-    
-    with mlflow.start_run():
-        mlp.fit(X_train_scaled, y_train, sample_weight=sample_weights)
-        
-        y_pred = mlp.predict(X_test_scaled)
-        y_val_pred = mlp.predict(X_validation_scaled)
-        
-        f1 = f1_score(y_test, y_pred)
-        accuracy = accuracy_score(y_test, y_pred)
-        val_accuracy = accuracy_score(y_validation, y_val_pred)
-        class_report = classification_report(y_test, y_pred)
-        
-        mlflow.log_metrics({
-            "f1_score": f1,
-            "accuracy": accuracy,
-            "val_accuracy": val_accuracy
-        })
-        
-    return accuracy, val_accuracy, f1, class_report
+def model_MLP(X_train_scaled, X_test_scaled, X_validation_scaled, y_train, y_test, y_validation):
 
-def model_CNN(X_scaled, y, lookback=10, params=None, name="CNN Trading"):
+    mlp = MLPClassifier(hidden_layer_sizes=MLP_Params.hidden_layer_sizes,
+                        activation=MLP_Params.activation,
+                        solver=MLP_Params.solver,
+                        max_iter=MLP_Params.max_iter)
+    mlp.fit(X_train_scaled, y_train)
+    y_pred = mlp.predict(X_test_scaled)
+    y_val_pred = mlp.predict(X_validation_scaled)
+
+    accuracy = accuracy_score(y_test, y_pred)
+    val_accuracy = accuracy_score(y_validation, y_val_pred)
+    class_report = classification_report(y_test, y_pred)
+
+    return accuracy, val_accuracy, class_report
+
+
+# Model CNN
+
+def model_CNN(X_scaled, y, lookback=CNN_Params.lookback, params=None, name="CNN Trading"):
+    mlflow.tensorflow.autolog()
 
     if params is None:
-        params = {
-            "conv_layers": 2,
-            "filters": 32,
-            "kernel_size": 3,
-            "dense_units": 64,
-            "activation": "relu",
-            "optimizer": "adam",
-            "epochs": 10,
-            "batch_size": 32
-        }
+        params = CNN_Params.__dict__
 
-    X_cnn = np.array([X_scaled[i-lookback:i] for i in range(lookback, len(X_scaled))])
+    X_cnn = np.array([X_scaled[i-lookback:i]
+                     for i in range(lookback, len(X_scaled))])
     y_cnn = np.array(y[lookback:])
-
-    sample_weights = compute_sample_weight(class_weight='balanced', y=y_cnn)
 
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Input(shape=(lookback, X_scaled.shape[1])))
@@ -62,10 +45,12 @@ def model_CNN(X_scaled, y, lookback=10, params=None, name="CNN Trading"):
         filters *= 2
 
     model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(params["dense_units"], activation=params["activation"]))
+    model.add(tf.keras.layers.Dense(
+        params["dense_units"], activation=params["activation"]))
     model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
 
-    model.compile(optimizer=params["optimizer"], loss="binary_crossentropy", metrics=["accuracy"])
+    model.compile(optimizer=params["optimizer"],
+                  loss="binary_crossentropy", metrics=["accuracy"])
 
     mlflow.tensorflow.autolog()
     mlflow.set_experiment(name)
@@ -74,7 +59,6 @@ def model_CNN(X_scaled, y, lookback=10, params=None, name="CNN Trading"):
 
     with mlflow.start_run() as run:
         history = model.fit(X_cnn, y_cnn,
-                            sample_weight=sample_weights,
                             epochs=params["epochs"],
                             batch_size=params["batch_size"],
                             validation_split=0.2,
@@ -86,6 +70,7 @@ def model_CNN(X_scaled, y, lookback=10, params=None, name="CNN Trading"):
         }
 
         mlflow.log_metrics(final_metrics)
-        mlflow.tensorflow.log_model(model, name="model", input_example=input_example)
+        mlflow.tensorflow.log_model(
+            model, name="model", input_example=input_example)
 
     return model, final_metrics
