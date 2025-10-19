@@ -1,0 +1,11 @@
+digest: 38663bfa
+name: dataset
+profile: '{"features_shape": [2224, 10, 4], "features_size": 88960, "features_nbytes":
+  711680, "targets_shape": [2224], "targets_size": 2224, "targets_nbytes": 17792}'
+schema: '{"mlflow_tensorspec": {"features": "[{\"type\": \"tensor\", \"tensor-spec\":
+  {\"dtype\": \"float64\", \"shape\": [-1, 10, 4]}}]", "targets": "[{\"type\": \"tensor\",
+  \"tensor-spec\": {\"dtype\": \"int64\", \"shape\": [-1]}}]"}}'
+source: '{"tags": {"mlflow.user": "ppmel", "mlflow.source.name": "c:/Users/ppmel/Documentos/ITESO
+  7mo Semestre/Trading-003/main.py", "mlflow.source.type": "LOCAL", "mlflow.source.git.commit":
+  "572c43afd25369fd9fcb79326a214777eaaec8e4"}}'
+source_type: code

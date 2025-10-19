@@ -2,6 +2,13 @@
 import os
 import warnings
 
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+warnings.filterwarnings("ignore")          # Oculta los warnings de Python
+
+
 # --- Third-party libraries: Data analysis ---
 import ta
 import numpy as np
@@ -28,12 +35,7 @@ import mlflow
 # --- Type hints ---
 from typing import List
 
-warnings.filterwarnings("ignore") 
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 optuna.logging.set_verbosity(optuna.logging.ERROR)
-
 np.random.seed(42)
 
 plt.rcParams['figure.facecolor'] = 'lightgrey'

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/ppmel/Documentos/ITESO%207mo%20Semestre/Trading-003/mlruns/711625054411400171/6f1a58bb6d444a52bb379f187eeb106b/artifacts
+end_time: 1760902522318
+entry_point_name: ''
+experiment_id: '711625054411400171'
+lifecycle_stage: active
+run_id: 6f1a58bb6d444a52bb379f187eeb106b
+run_name: masked-dog-921
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760902505237
+status: 3
+tags: []
+user_id: ppmel

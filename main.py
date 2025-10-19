@@ -2,7 +2,8 @@ from libraries import *
 from functions import dateset_split
 from sklearn.preprocessing import StandardScaler
 from indicators import indicadores_prueba
-from models import model_MLP
+from models import model_MLP, model_CNN
+
 
 data = yf.download("AZO", start="2010-10-10", end="2025-10-10", progress=False)
 
@@ -24,8 +25,12 @@ def main():
     X_validation_scaled = scaler.transform(X_validation)
 
     print("Training MLP model...")
-    results = model_MLP(X_train_scaled, X_test_scaled, X_validation_scaled, y_train, y_test, y_validation)
-    print(results)
+    results_mlp = model_MLP(X_train_scaled, X_test_scaled, X_validation_scaled, y_train, y_test, y_validation)
+    print(results_mlp)
+
+    print("Training CNN model...")
+    results_cnn = model_CNN(X_train_scaled, y_train, lookback=10, params=None, name="CNN Trading")
+    print(results_cnn)
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,27 @@
+artifact_path: file:///C:/Users/ppmel/Documentos/ITESO%207mo%20Semestre/Trading-003/mlruns/711625054411400171/models/m-66e488b40e974f6fb91e2ace812e7c84/artifacts
+flavors:
+  python_function:
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.tensorflow
+    python_version: 3.13.5
+  tensorflow:
+    code: null
+    data: data
+    keras_version: 2.20.0
+    model_type: keras
+    save_format: tf
+mlflow_version: 3.5.0
+model_id: m-66e488b40e974f6fb91e2ace812e7c84
+model_size_bytes: 167678
+model_uuid: m-66e488b40e974f6fb91e2ace812e7c84
+prompts: null
+run_id: 4064831afc7049e3ba3022885042cdea
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+utc_time_created: '2025-10-19 19:37:48.781158'
