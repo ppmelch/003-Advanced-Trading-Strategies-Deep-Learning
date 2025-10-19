@@ -1,0 +1,8 @@
+#!/Users/rolandofortanell/Documents/ITESO/003-Advanced-Trading-Strategies-Deep-Learning/003-Advanced-Trading-Strategies-Deep-Learning/env/bin/python
+# -*- coding: utf-8 -*-
+import re
+import sys
+from pip._internal.cli.main import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
