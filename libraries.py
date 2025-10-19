@@ -6,8 +6,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-warnings.filterwarnings("ignore")          # Oculta los warnings de Python
-
+warnings.filterwarnings("ignore")          
 
 # --- Third-party libraries: Data analysis ---
 import ta
@@ -23,14 +22,15 @@ import matplotlib.ticker as mtick
 from IPython.display import display
 
 # --- Third-party libraries: Machine Learning / Optimization ---
+import mlflow
 import optuna
+import tensorflow as tf
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import classification_report
-import tensorflow as tf
-import mlflow
+from sklearn.utils.class_weight import compute_sample_weight
+from sklearn.metrics import f1_score,accuracy_score, precision_score, recall_score, classification_report
+
 
 # --- Type hints ---
 from typing import List
