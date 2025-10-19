@@ -20,15 +20,15 @@ import optuna
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
-from sklearn.base import accuracy_score
+from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
-
 import tensorflow as tf
 import mlflow
 
 # --- Type hints ---
 from typing import List
 
+warnings.filterwarnings("ignore") 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"

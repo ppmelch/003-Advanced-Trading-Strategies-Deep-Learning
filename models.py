@@ -9,7 +9,7 @@ def model_MLP(X_train_scaled, X_test_scaled, X_validation_scaled, y_train, y_tes
     mlp = MLPClassifier(hidden_layer_sizes=(64, 32),
                         activation='relu',
                         solver='adam',
-                        max_iter=200)
+                        max_iter=10000)
     mlp.fit(X_train_scaled, y_train)
     y_pred = mlp.predict(X_test_scaled)
     y_val_pred = mlp.predict(X_validation_scaled)
@@ -21,4 +21,8 @@ def model_MLP(X_train_scaled, X_test_scaled, X_validation_scaled, y_train, y_tes
     return accuracy, val_accuracy, class_report
 
 
+# Model CNN
 
+def model_CNN(X_train, X_test, X_validation, y_train, y_test, y_validation):
+
+    pass
