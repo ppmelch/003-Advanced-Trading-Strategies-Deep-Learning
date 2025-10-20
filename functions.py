@@ -97,6 +97,7 @@ class BacktestingCapCOM:
     """
     initial_capital: float = 1_000_000
     COM: float = 0.125 / 100
+    borrow_Rate: float = 0.25
 
 
 @dataclass
@@ -122,4 +123,33 @@ class OptunaOpt:
     n_splits: int = 5
     show_progress_bar: bool = True
 
+
+
+def get_portfolio_value(cash: float, long_ops: list[Position], short_ops: list[Position], current_price: float, n_shares: float) -> float:
+    """
+    Calculates the total portfolio value at a given moment.
+
+    Parameters:
+    cash : float
+        Cash available in the portfolio.
+    long_ops : list[Position]
+        List of active long positions.
+    short_ops : list[Position]
+        List of active short positions.
+    current_price : float
+        Current price of the asset.
+    n_shares : float
+        Number of shares per position.
+
+    Returns:
+    float
+        Total portfolio value including long and short positions.
+    """
+    value = cash
+    for pos in long_ops:
+        value += current_price * pos.n_shares
+    for pos in short_ops:
+        value += (pos.price * pos.n_shares) + \
+            (pos.price - current_price) * pos.n_shares
+    return value
 

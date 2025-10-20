@@ -1,9 +1,9 @@
 from libraries import *
 from metrics import Metrics
 from hyperparams import hyperparams
-from indicators import Indicadores
-from functions import Position, BacktestingCapCOM, get_portfolio_value
-
+from functions import get_portfolio_value
+from indicators import Indicators
+from functions import Position, BacktestingCapCOM
 
 def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) -> tuple[list, dict, float]:
     """
@@ -12,34 +12,61 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
     data = data.copy().reset_index(drop=True)
 
     # --- Parameters ---
-    params = trial_or_params if isinstance(
-        trial_or_params, dict) else hyperparams(trial_or_params)
+    params = trial_or_params if isinstance(trial_or_params, dict) else hyperparams(trial_or_params)
 
+    # === Extract Hyperparameters ===
     rsi_window = params["rsi_window"]
-    rsi_lower = params["rsi_lower"]
-    rsi_upper = params["rsi_upper"]
+    stoch_window = params["stoch_window"]
+    stoch_smooth = params["stoch_smooth"]
+    macd_fast = params["macd_fast"]
+    macd_slow = params["macd_slow"]
+    macd_signal = params["macd_signal"]
+    cci_window = params["cci_window"]
+    williams_window = params["williams_window"]
+    roc_window = params["roc_window"]
+    ao_window1 = params["ao_window1"]
+    ao_window2 = params["ao_window2"]
     momentum_window = params["momentum_window"]
-    momentum_threshold = params["momentum_threshold"]
+
+    # === Volatility Indicators ===
+    boll_window = params["boll_window"]
+    boll_dev = params["boll_dev"]
+    atr_window = params["atr_window"]
+    keltner_window = params["keltner_window"]
+    keltner_atr = params["keltner_atr"]
+    donchian_window = params["donchian_window"]
+    chaikin_window = params["chaikin_window"]
+
+    # === Volume Indicators ===
+    cmf_window = params["cmf_window"]
+    mfi_window = params["mfi_window"]
+
+    # === Volatility Filter ===
     volatility_window = params["volatility_window"]
     volatility_quantile = params["volatility_quantile"]
+
+    # === Risk Management ===
     stop_loss = params["stop_loss"]
     take_profit = params["take_profit"]
     capital_pct_exp = params["capital_pct_exp"]
 
-    # --- Commission & Capital ---
+    # --- Constants from Config ---
     COM = BacktestingCapCOM.COM
+    Borrow_Rate = BacktestingCapCOM.Borrow_Rate
     cash = BacktestingCapCOM.initial_capital if initial_cash is None else initial_cash
 
     # --- Signals ---
-    buy_rsi, sell_rsi = Indicadores.get_rsi(
-        data, rsi_window, rsi_upper, rsi_lower)
-    buy_momentum, sell_momentum = Indicadores.get_momentum(
-        data, momentum_window, momentum_threshold)
+    buy_rsi, sell_rsi = Indicators.get_rsi(data, rsi_window)
+    buy_momentum, sell_momentum = Indicators.get_momentum(data, momentum_window)
+    buy_volatility, sell_volatility = Indicators.get_volatility_filter(
+        data, boll_window, boll_dev, atr_window, keltner_window, keltner_atr,
+        donchian_window, chaikin_window
+    )
 
     # --- Volatility filter ---
     vol = data['Close'].rolling(volatility_window).std()
     vol_threshold = vol.quantile(volatility_quantile)
-    low_vol = vol < vol_threshold  # mercado estable
+    low_vol = vol < vol_threshold  # stable market filter
 
     # --- Combine signals (2/3 + low-vol filter) ---
     historic = data.copy()
@@ -66,29 +93,34 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
 
         # --- Close SHORT positions ---
         for pos in active_short_positions.copy():
+            days_held = i - pos.open_index
+            borrow_cost = (Borrow_Rate / 252) * days_held * pos.price * pos.n_shares
+            pnl = (pos.price - price) * pos.n_shares - borrow_cost
+
             if price <= pos.tp or price >= pos.sl:
-                pnl = (pos.price - price) * pos.n_shares * (1 - COM)
-                cash += (pos.price * pos.n_shares) * (1 + COM) + pnl
+                cash += (pos.price * pos.n_shares) * (1 - COM) + pnl
                 pos.profit = pnl
                 closed_positions.append(pos)
                 active_short_positions.remove(pos)
 
-        # --- Open LONG positions ---
+        # --- Open LONG ---
         if row.buy_signal and not active_long_positions and not active_short_positions:
-            if cash > price * n_shares * (1 + COM):
+            if cash >= price * n_shares * (1 + COM):
                 cash -= price * n_shares * (1 + COM)
                 active_long_positions.append(Position(
                     price=price, n_shares=n_shares,
-                    sl=price * (1 - stop_loss), tp=price * (1 + take_profit)
+                    sl=price * (1 - stop_loss), tp=price * (1 + take_profit),
+                    open_index=i
                 ))
 
-        # --- Open SHORT positions ---
+        # --- Open SHORT ---
         if row.sell_signal and not active_short_positions and not active_long_positions:
-            if cash > price * n_shares * (1 + COM):
+            if cash >= price * n_shares * (1 + COM):
                 cash -= price * n_shares * (1 + COM)
                 active_short_positions.append(Position(
                     price=price, n_shares=n_shares,
-                    sl=price * (1 + stop_loss), tp=price * (1 - take_profit)
+                    sl=price * (1 + stop_loss), tp=price * (1 - take_profit),
+                    open_index=i
                 ))
 
         # --- Portfolio value ---
@@ -103,8 +135,10 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
         closed_positions.append(pos)
 
     for pos in active_short_positions:
-        pnl = (pos.price - price) * pos.n_shares * (1 - COM)
-        cash += (pos.price * pos.n_shares) * (1 + COM) + pnl
+        days_held = len(historic) - pos.open_index
+        borrow_cost = (Borrow_Rate / 252) * days_held * pos.price * pos.n_shares
+        pnl = (pos.price - price) * pos.n_shares - borrow_cost
+        cash += (pos.price * pos.n_shares) * (1 - COM) + pnl
         pos.profit = pnl
         closed_positions.append(pos)
 

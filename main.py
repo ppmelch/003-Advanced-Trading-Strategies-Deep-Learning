@@ -1,10 +1,10 @@
 from libraries import *
-from indicators import indicators
+from indicators import Indicators
 from models import model_MLP, model_CNN
 from prints import print_best_hyperparams
 from sklearn.preprocessing import StandardScaler
 from optimizer import optimize_hyperparams, dateset_split
-from functions import CNN_Params, MLP_Params, BacktestingCapCOM, OptunaOpt
+from functions import CNN_Params, BacktestingCapCOM, OptunaOpt
 
 
 data = yf.download("AZO", start="2010-10-10", end="2025-10-10", progress=False)
@@ -12,9 +12,9 @@ data = yf.download("AZO", start="2010-10-10", end="2025-10-10", progress=False)
 data["Target"] = (data["Close"].shift(-1) > data["Close"]).astype(int)
 data = data.dropna()
 
-data = indicators(data)
+data = Indicators.indicators(data)
 
-X = data[["SMA_10", "SMA_50", "RSI", "Return"]]
+X = data.drop(columns=["Target"])
 y = data["Target"]
 
 X_train, X_test, X_validation = dateset_split(X, 0.6, 0.2, 0.2)
