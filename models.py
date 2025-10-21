@@ -11,14 +11,14 @@ def model_MLP(X_train_scaled, X_test_scaled, X_validation_scaled, y_train, y_tes
                         solver=MLP_Params.solver,
                         max_iter=MLP_Params.max_iter)
     mlp.fit(X_train_scaled, y_train)
-    y_pred = mlp.predict(X_test_scaled)
+    y_pred_mlp = mlp.predict(X_test_scaled)
     y_val_pred = mlp.predict(X_validation_scaled)
 
-    accuracy = accuracy_score(y_test, y_pred)
+    accuracy = accuracy_score(y_test, y_pred_mlp)
     val_accuracy = accuracy_score(y_validation, y_val_pred)
-    class_report = classification_report(y_test, y_pred)
+    class_report = classification_report(y_test, y_pred_mlp)
 
-    return accuracy, val_accuracy, class_report
+    return accuracy, val_accuracy, class_report, y_pred_mlp
 
 
 # Model CNN
@@ -73,4 +73,6 @@ def model_CNN(X_scaled, y, lookback=CNN_Params.lookback, params=None, name="CNN 
         mlflow.tensorflow.log_model(
             model, name="model", input_example=input_example)
 
-    return model, final_metrics
+    y_pred_cnn = (model.predict(X_cnn) > 0.5).astype(int).flatten()
+    return model, final_metrics, y_pred_cnn
+

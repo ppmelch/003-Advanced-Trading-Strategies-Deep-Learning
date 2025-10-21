@@ -1,6 +1,8 @@
 # --- Standard library ---
 import os
 import warnings
+from dataclasses import dataclass
+
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -30,7 +32,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.metrics import f1_score,accuracy_score, precision_score, recall_score, classification_report
-
 
 # --- Type hints ---
 from typing import List

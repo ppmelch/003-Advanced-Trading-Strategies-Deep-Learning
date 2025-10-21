@@ -1,89 +1,66 @@
 from libraries import *
 from metrics import Metrics
-from hyperparams import hyperparams
-from functions import get_portfolio_value
-from indicators import Indicators
+from indicators import Indicadores
 from functions import Position, BacktestingCapCOM
+from functions import Params_Indicators, get_portfolio_value
 
-def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) -> tuple[list, dict, float]:
+
+#ARREGLAR ESTO PARA QUE USE LOS INDICADORES TECNICOS
+
+def backtest(data: pd.DataFrame, params: Params_Indicators, initial_cash: float = None) -> tuple[list, dict, float]:
     """
-    Executes a backtest using RSI, Momentum, and Volatility strategies with volatility as a filter.
+    Backtest usando señales derivadas de indicadores técnicos (RSI, Momentum, Volatility)
+    con filtro de volatilidad y gestión de posiciones (long/short) incluyendo Borrow Rate.
     """
-    data = data.copy().reset_index(drop=True)
 
-    # --- Parameters ---
-    params = trial_or_params if isinstance(trial_or_params, dict) else hyperparams(trial_or_params)
+    # --- 1. Preparar DataFrame de indicadores ---
+    indicators = Indicadores(params=params)
+    data_ind = indicators.get_data(data)
+    data_ind = data_ind.reset_index(drop=True)
 
-    # === Extract Hyperparameters ===
-    rsi_window = params["rsi_window"]
-    stoch_window = params["stoch_window"]
-    stoch_smooth = params["stoch_smooth"]
-    macd_fast = params["macd_fast"]
-    macd_slow = params["macd_slow"]
-    macd_signal = params["macd_signal"]
-    cci_window = params["cci_window"]
-    williams_window = params["williams_window"]
-    roc_window = params["roc_window"]
-    ao_window1 = params["ao_window1"]
-    ao_window2 = params["ao_window2"]
-    momentum_window = params["momentum_window"]
+    # --- 2. Señales ---
+    # RSI
+    buy_rsi = data_ind['RSI'] < 30
+    sell_rsi = data_ind['RSI'] > 70
 
-    # === Volatility Indicators ===
-    boll_window = params["boll_window"]
-    boll_dev = params["boll_dev"]
-    atr_window = params["atr_window"]
-    keltner_window = params["keltner_window"]
-    keltner_atr = params["keltner_atr"]
-    donchian_window = params["donchian_window"]
-    chaikin_window = params["chaikin_window"]
+    # Momentum (ejemplo usando ROC y CMI)
+    buy_momentum = (data_ind['ROC'] > 0) & (data_ind['CMI'] > 0)
+    sell_momentum = (data_ind['ROC'] < 0) & (data_ind['CMI'] < 0)
 
-    # === Volume Indicators ===
-    cmf_window = params["cmf_window"]
-    mfi_window = params["mfi_window"]
+    # Volatility filter (Bollinger Bands)
+    buy_volatility = data_ind['Close'] < data_ind['bollinger_lower']
+    sell_volatility = data_ind['Close'] > data_ind['bollinger_upper']
 
-    # === Volatility Filter ===
-    volatility_window = params["volatility_window"]
-    volatility_quantile = params["volatility_quantile"]
+    # --- Volatility cuantil como filtro de mercado estable ---
+    vol_window = 20
+    vol_quantile = 0.5
+    vol = data_ind['Close'].rolling(vol_window).std()
+    low_vol = vol < vol.quantile(vol_quantile)
 
-    # === Risk Management ===
-    stop_loss = params["stop_loss"]
-    take_profit = params["take_profit"]
-    capital_pct_exp = params["capital_pct_exp"]
-
-    # --- Constants from Config ---
-    COM = BacktestingCapCOM.COM
-    Borrow_Rate = BacktestingCapCOM.Borrow_Rate
-    cash = BacktestingCapCOM.initial_capital if initial_cash is None else initial_cash
-
-    # --- Signals ---
-    buy_rsi, sell_rsi = Indicators.get_rsi(data, rsi_window)
-    buy_momentum, sell_momentum = Indicators.get_momentum(data, momentum_window)
-    buy_volatility, sell_volatility = Indicators.get_volatility_filter(
-        data, boll_window, boll_dev, atr_window, keltner_window, keltner_atr,
-        donchian_window, chaikin_window
-    )
-
-    # --- Volatility filter ---
-    vol = data['Close'].rolling(volatility_window).std()
-    vol_threshold = vol.quantile(volatility_quantile)
-    low_vol = vol < vol_threshold  # stable market filter
-
-    # --- Combine signals (2/3 + low-vol filter) ---
-    historic = data.copy()
-    historic["buy_signal"] = ((buy_rsi + 2 * buy_momentum) >= 2) & low_vol
-    historic["sell_signal"] = ((sell_rsi + 2 * sell_momentum) >= 2) & low_vol
+    # --- Combinar señales ---
+    historic = data_ind.copy()
+    historic['buy_signal'] = ((buy_rsi + 2 * buy_momentum) >= 2) & low_vol
+    historic['sell_signal'] = ((sell_rsi + 2 * sell_momentum) >= 2) & low_vol
     historic = historic.dropna().reset_index(drop=True)
 
-    # --- Tracking ---
+    # --- 3. Configuración de capital y comisiones ---
+    cash = BacktestingCapCOM.initial_capital if initial_cash is None else initial_cash
+    COM = BacktestingCapCOM.COM
+    Borrow_Rate = BacktestingCapCOM.Borrow_Rate
+    stop_loss = 0.02
+    take_profit = 0.04
+    capital_pct_exp = 0.5
+
+    # --- 4. Inicializar tracking ---
     active_long_positions, active_short_positions, port_value = [], [], [cash]
     closed_positions = []
 
-    # --- Backtest Loop ---
+    # --- 5. Loop de backtest ---
     for i, row in historic.iterrows():
         price = row.Close
         n_shares = (cash * capital_pct_exp) / price
 
-        # --- Close LONG positions ---
+        # --- Cerrar posiciones LONG ---
         for pos in active_long_positions.copy():
             if price >= pos.tp or price <= pos.sl:
                 cash += price * pos.n_shares * (1 - COM)
@@ -91,7 +68,7 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
                 closed_positions.append(pos)
                 active_long_positions.remove(pos)
 
-        # --- Close SHORT positions ---
+        # --- Cerrar posiciones SHORT ---
         for pos in active_short_positions.copy():
             days_held = i - pos.open_index
             borrow_cost = (Borrow_Rate / 252) * days_held * pos.price * pos.n_shares
@@ -103,7 +80,7 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
                 closed_positions.append(pos)
                 active_short_positions.remove(pos)
 
-        # --- Open LONG ---
+        # --- Abrir LONG ---
         if row.buy_signal and not active_long_positions and not active_short_positions:
             if cash >= price * n_shares * (1 + COM):
                 cash -= price * n_shares * (1 + COM)
@@ -113,7 +90,7 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
                     open_index=i
                 ))
 
-        # --- Open SHORT ---
+        # --- Abrir SHORT ---
         if row.sell_signal and not active_short_positions and not active_long_positions:
             if cash >= price * n_shares * (1 + COM):
                 cash -= price * n_shares * (1 + COM)
@@ -123,12 +100,12 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
                     open_index=i
                 ))
 
-        # --- Portfolio value ---
+        # --- Valor del portfolio ---
         port_value.append(get_portfolio_value(
             cash, active_long_positions, active_short_positions, price, n_shares
         ))
 
-    # --- Close remaining positions ---
+    # --- 6. Cerrar posiciones restantes ---
     for pos in active_long_positions:
         cash += price * pos.n_shares * (1 - COM)
         pos.profit = (price - pos.price) * pos.n_shares
@@ -142,10 +119,9 @@ def backtest(data: pd.DataFrame, trial_or_params, initial_cash: float = None) ->
         pos.profit = pnl
         closed_positions.append(pos)
 
-    # --- Metrics ---
+    # --- 7. Métricas ---
     port_series = pd.Series(port_value).replace(0, np.nan).dropna()
     metrics_obj = Metrics(port_series)
-
     final_value = port_value[-1]
     initial_value = port_value[0]
     profit = final_value - initial_value

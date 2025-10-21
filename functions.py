@@ -1,6 +1,4 @@
 from libraries import *
-from dataclasses import dataclass
-
 
 @dataclass
 class Position:
@@ -30,6 +28,24 @@ class Position:
 
 
 @dataclass
+class BacktestingCapCOM:
+    """
+    Backtesting configuration with initial capital and commission.
+
+    Attributes:
+    initial_capital : float
+        Initial capital for backtesting (default: 1_000_000).
+    COM : float
+        Commission per trade in percentage (default: 0.125 / 100).
+    borrow_Rate : float
+        Borrowing rate for short positions (default: 0.25).
+    """
+    initial_capital: float = 1_000_000
+    COM: float = 0.125 / 100
+    borrow_Rate: float = 0.25
+
+
+@dataclass
 class MLP_Params:
     """
     Parameters for MLP Classifier.
@@ -48,6 +64,7 @@ class MLP_Params:
     activation: str = 'relu'
     solver: str = 'adam'
     max_iter: int = 10000
+
 
 @dataclass
 class CNN_Params:
@@ -84,45 +101,34 @@ class CNN_Params:
     batch_size: int = 32
 
 
-@dataclass
-class BacktestingCapCOM:
-    """
-    Backtesting configuration with initial capital and commission.
-
-    Attributes:
-    initial_capital : float
-        Initial capital for backtesting (default: 1_000_000).
-    COM : float
-        Commission per trade in percentage (default: 0.125 / 100).
-    """
-    initial_capital: float = 1_000_000
-    COM: float = 0.125 / 100
-    borrow_Rate: float = 0.25
-
 
 @dataclass
-class OptunaOpt:
-    """
-    Optuna optimization configuration.
+class Params_Indicators:
+    # --- Momentum Indicators (8) ---
+    rsi_window: int = 14
+    stoch_osc_window: int = 14
+    stoch_osc_smooth: int = 3
+    macd_fast: int = 12
+    macd_slow: int = 26
+    macd_signal: int = 9
+    cci_window: int = 20
+    williams_r_lbp: int = 14
 
-    Attributes:
-    direction : str
-        Optimization direction ('maximize' or 'minimize').
-    n_trials : int
-        Number of optimization trials.
-    n_jobs : int
-        Number of parallel jobs (-1 uses all cores).
-    n_splits : int
-        Number of cross-validation splits.
-    show_progress_bar : bool
-        Show Optuna progress bar.
-    """
-    direction: str = 'maximize'
-    n_trials: int = 50
-    n_jobs: int = -1
-    n_splits: int = 5
-    show_progress_bar: bool = True
+    # --- Volatility Indicators (8) ---
+    bollinger_window: int = 20
+    bollinger_dev: int = 2
+    atr_window: int = 14
+    keltner_window: int = 20
+    keltner_atr: int = 10
+    donchian_window: int = 20
+    chaikin_vol_window: int = 10
+    ulcer_index_window: int = 14  # si quieres calcularlo también
 
+    # --- Volume Indicators (4) ---
+    obv_window: int = 1
+    cmf_window: int = 20
+    vpt_window: int = 1
+    money_flow_index_window: int = 14
 
 
 def get_portfolio_value(cash: float, long_ops: list[Position], short_ops: list[Position], current_price: float, n_shares: float) -> float:
@@ -152,4 +158,3 @@ def get_portfolio_value(cash: float, long_ops: list[Position], short_ops: list[P
         value += (pos.price * pos.n_shares) + \
             (pos.price - current_price) * pos.n_shares
     return value
-

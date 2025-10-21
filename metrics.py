@@ -93,7 +93,7 @@ def metrics(port_value: pd.Series) -> pd.DataFrame:
     metrics_df = pd.DataFrame({
         'Sharpe Ratio': [Metrics.sharpe(port_value)],
         'Sortino Ratio': [Metrics.sortino(port_value)],
-        'Maximum Drawdown': [Metrics.maximum_drawdown(port_value)],
+        'Maximum Drawdown': [Metrics.max_drawdown(port_value)],
         'Calmar Ratio': [Metrics.calmar(port_value)],
         'Win Rate': [Metrics.win_rate(port_value)],
     }, index = ["Metrics"])

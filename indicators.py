@@ -1,68 +1,167 @@
 from libraries import *
-from dataclasses import dataclass
-
-def indicators(data: pd.DataFrame) -> pd.DataFrame:
-
-    close = data["Close"].squeeze()
-
-    # Momentum Indicatos
-        # RSI
-    data['RSI'] = ta.momentum.RSIIndicator(data['Close'], window=14).rsi()
-        # Stochastic Oscillator
-    data['Stochastic_Oscillator'] = ta.momentum.StochasticOscillator(
-        data['High'], data['Low'], data['Close'], window=14, smooth_window=3).stoch()
-        # MACD
-    data['MACD'] = ta.trend.MACD(data['Close'], window_slow=26, window_fast=12, window_sign=9).macd()
-        # CCI
-    data['CCI'] = ta.trend.CCIIndicator(data['High'], data['Low'], data['Close'], window=20).cci()
-        # Williams %R
-    data['Williams_%R'] = ta.momentum.WilliamsRIndicator(
-        data['High'], data['Low'], data['Close'], lbp=14).williams_r()
-        # ROC
-    data['ROC'] = ta.momentum.ROCIndicator(data['Close'], window=12).roc()
-        # Awesome Oscillator
-    data['Awesome_Oscillator'] = ta.momentum.AwesomeOscillator(
-        data['High'], data['Low'], window1=5, window2=34).awesome_oscillator()
-        # Classic Momentun Indicator
-    data['CMI'] = ta.momentum.ClassicMomentumIndicator(data['Close'], window=14).cmi()
-
-    # Volatility Indicators
-        # Bollinger Bands
-    bollinger = ta.volatility.BollingerBands(data['Close'], window=20, window_dev=2)
-    data['bollinger_upper'] = bollinger.bollinger_hband()
-    data['bollinger_lower'] = bollinger.bollinger_lband()
-        # Average True Range (ATR)
-    data['ATR'] = ta.volatility.AverageTrueRange(
-        data['High'], data['Low'], data['Close'], window=14).average_true_range()
-        # Keltner Channels
-    keltner = ta.volatility.KeltnerChannel(
-        data['High'], data['Low'], data['Close'], window=20, window_atr=10)
-    data['keltner_upper'] = keltner.keltner_channel_hband()
-    data['keltner_lower'] = keltner.keltner_channel_lband()
-        # Donchian Channels
-    donchian = ta.volatility.DonchianChannel(data['High'], data['Low'], window=20)
-    data['donchian_upper'] = donchian.donchian_channel_hband()
-    data['donchian_lower'] = donchian.donchian_channel_lband()
-        # Chaikin Volatility
-    data['Chaikin_Volatility'] = ta.volatility.ChaikinVolatility(
-        data['High'], data['Low'], window=10).chaikin_volatility()
-    
-    # Volume Indicators
-        # On-Balance Volume (OBV)
-    data['OBV'] = ta.volume.OnBalanceVolumeIndicator(data['Close'], data['Volume']).on_balance_volume()
-        # Chaikin Money Flow (CMF)
-    data['CMF'] = ta.volume.ChaikinMoneyFlowIndicator(
-        data['High'], data['Low'], data['Close'], data['Volume'], window=20).chaikin_money_flow()
-        # Volume Price Trend (VPT)
-    data['VPT'] = ta.volume.VolumePriceTrendIndicator(data['Close'], data['Volume']).volume_price_trend()
-        # Money Flow Index (MFI)
-    data['MFI'] = ta.volume.MFIIndicator(
-        data['High'], data['Low'], data['Close'], data['Volume'], window=14).money_flow_index()
-    
-    data["Return"] = close.pct_change()
-    data = data.dropna()
-
-    return data
+from functions import Params_Indicators
 
 
-    
+@dataclass
+class Indicadores:
+    params: Params_Indicators
+
+    # --- Momentum Indicators ---
+    def rsi(self, data: pd.DataFrame) -> pd.Series:
+        return ta.momentum.RSIIndicator(
+            close=data['Close'], window=self.params.rsi_window
+        ).rsi()
+
+    def stochastic_oscillator(self, data: pd.DataFrame) -> pd.Series:
+        return ta.momentum.StochasticOscillator(
+            high=data['High'], low=data['Low'], close=data['Close'],
+            window=self.params.stoch_osc_window,
+            smooth_window=self.params.stoch_osc_smooth
+        ).stoch()
+
+    def macd(self, data: pd.DataFrame) -> pd.Series:
+        return ta.trend.MACD(
+            close=data['Close'],
+            window_fast=self.params.macd_fast,
+            window_slow=self.params.macd_slow,
+            window_sign=self.params.macd_signal
+        ).macd()
+
+    def cci(self, data: pd.DataFrame, period: str = "cci_window") -> pd.Series:
+        return ta.trend.CCIIndicator(
+            high=data['High'], low=data['Low'], close=data['Close'],
+            window=getattr(self.params, period)
+        ).cci()
+
+    def williams_r(self, data: pd.DataFrame) -> pd.Series:
+        return ta.momentum.WilliamsRIndicator(
+            high=data['High'], low=data['Low'], close=data['Close'],
+            lbp=self.params.williams_r_lbp
+        ).williams_r()
+
+    def roc(self, data: pd.DataFrame) -> pd.Series:
+        return ta.momentum.ROCIndicator(
+            close=data['Close'], window=self.params.roc_window
+        ).roc()
+
+    def awesome_oscillator(self, data: pd.DataFrame) -> pd.Series:
+        return ta.momentum.AwesomeOscillator(
+            high=data['High'], low=data['Low'],
+            window1=self.params.awesome_window1,
+            window2=self.params.awesome_window2
+        ).awesome_oscillator()
+
+    def cmi(self, data: pd.DataFrame) -> pd.Series:
+        return ta.momentum.ClassicMomentumIndicator(
+            close=data['Close'], window=self.params.cmi_window
+        ).cmi()
+
+    # --- Volatility Indicators ---
+    def atr(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volatility.AverageTrueRange(
+            high=data['High'], low=data['Low'], close=data['Close'],
+            window=self.params.atr_window
+        ).average_true_range()
+
+    def bollinger_bands(self, data: pd.DataFrame, period: str = "bollinger_window") -> pd.DataFrame:
+        bb = ta.volatility.BollingerBands(
+            close=data['Close'], window=getattr(self.params, period), window_dev=self.params.bollinger_dev
+        )
+        return pd.DataFrame({
+            'bollinger_upper': bb.bollinger_hband(),
+            'bollinger_lower': bb.bollinger_lband()
+        })
+
+    def donchian_channels(self, data: pd.DataFrame, period: str = "donchian_window") -> pd.DataFrame:
+        dc = ta.volatility.DonchianChannel(
+            high=data['High'], low=data['Low'], window=getattr(
+                self.params, period)
+        )
+        return pd.DataFrame({
+            'donchian_upper': dc.donchian_channel_hband(),
+            'donchian_lower': dc.donchian_channel_lband()
+        })
+
+    def keltner_channels(self, data: pd.DataFrame) -> pd.DataFrame:
+        kc = ta.volatility.KeltnerChannel(
+            high=data['High'], low=data['Low'], close=data['Close'],
+            window=self.params.keltner_window, window_atr=self.params.keltner_atr
+        )
+        return pd.DataFrame({
+            'keltner_upper': kc.keltner_channel_hband(),
+            'keltner_lower': kc.keltner_channel_lband()
+        })
+
+    def chaikin_volatility(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volatility.ChaikinVolatility(
+            high=data['High'], low=data['Low'], window=self.params.chaikin_vol_window
+        ).chaikin_volatility()
+
+    def ulcer_index(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volatility.UlcerIndex(
+            close=data['Close'], window=self.params.ulcer_index_window
+        ).ulcer_index()
+
+    # --- Volume Indicators ---
+    def obv(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volume.OnBalanceVolumeIndicator(
+            close=data['Close'], volume=data['Volume']
+        ).on_balance_volume()
+
+    def cmf(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volume.ChaikinMoneyFlowIndicator(
+            high=data['High'], low=data['Low'], close=data['Close'],
+            volume=data['Volume'], window=self.params.cmf_window
+        ).chaikin_money_flow()
+
+    def vpt(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volume.VolumePriceTrendIndicator(
+            close=data['Close'], volume=data['Volume']
+        ).volume_price_trend()
+
+    def mfi(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volume.MFIIndicator(
+            high=data['High'], low=data['Low'], close=data['Close'],
+            volume=data['Volume'], window=self.params.money_flow_index_window
+        ).money_flow_index()
+
+    def force_index(self, data: pd.DataFrame) -> pd.Series:
+        return ta.volume.ForceIndexIndicator(
+            close=data['Close'], volume=data['Volume'], window=self.params.force_index_window
+        ).force_index()
+
+    # --- Método general ---
+    def get_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        df = data.copy()
+
+        # Momentum
+        df['RSI'] = self.rsi(df)
+        df['Stochastic_Oscillator'] = self.stochastic_oscillator(df)
+        df['MACD'] = self.macd(df)
+        df['CCI'] = self.cci(df, "cci_window")
+        df['Williams_%R'] = self.williams_r(df)
+        df['ROC'] = self.roc(df)
+        df['Awesome_Oscillator'] = self.awesome_oscillator(df)
+        df['CMI'] = self.cmi(df)
+
+        # Volatility
+        df['ATR'] = self.atr(df)
+        df = pd.concat([df, self.bollinger_bands(
+            df, "bollinger_window")], axis=1)
+        df = pd.concat([df, self.donchian_channels(
+            df, "donchian_window")], axis=1)
+        df = pd.concat([df, self.keltner_channels(df)], axis=1)
+        df['Chaikin_Volatility'] = self.chaikin_volatility(df)
+        df['Ulcer_Index'] = self.ulcer_index(df)
+
+        # Volume
+        df['OBV'] = self.obv(df)
+        df['CMF'] = self.cmf(df)
+        df['VPT'] = self.vpt(df)
+        df['MFI'] = self.mfi(df)
+        df['Force_Index'] = self.force_index(df)
+
+        # Return
+        df['Return'] = df['Close'].pct_change()
+        df = df.dropna()
+        return df
